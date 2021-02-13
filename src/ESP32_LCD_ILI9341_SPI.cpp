@@ -43,7 +43,8 @@ ESP32_LCD_ILI9341_SPI::ESP32_LCD_ILI9341_SPI(int8_t sck, int8_t miso, int8_t mos
   , _rst(rst)
   , _ledpin(led)
 {
-
+  if(_cs == 22){_SPI_NUM = 0x3;};//VSPI
+  if(_cs == 15){_SPI_NUM = 0x2;};//HSPI
 }
 
 //************ ILI9341 初期化 ********************
@@ -59,6 +60,7 @@ void ESP32_LCD_ILI9341_SPI::ILI9341_Init(bool hwcs, uint32_t clk){
   _Hw_cs = hwcs;
   _freq = clk;
   _txt_H_max = _Max_Width_x / 8;
+  
     
   // //ILI9342C を判別するためのリセットピン読み取り
   pinMode(_rst, INPUT_PULLDOWN);
@@ -639,10 +641,16 @@ void ESP32_LCD_ILI9341_SPI::Display_Clear(uint16_t x0, uint16_t y0, uint16_t x1,
 }
 //*********** LCD ILE9341 Block Pixel SPI Fast Write *****************
 void ESP32_LCD_ILI9341_SPI::Block_SPI_Fast_Write(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, uint8_t red, uint8_t green, uint8_t blue, uint32_t repeat){
- uint16_t ColorDot = (red << 11) | (green << 5) | blue;
+ uint16_t ColorDot = (red << 11) | (green << 5) | blue;//ひとつにまとめている
  XY_Range(x0, y0, x1, y1);
  CommandWrite( 0x2C ); //LCD RAM write
  spiWriteBlock(ColorDot, repeat);
+}
+
+void ESP32_LCD_ILI9341_SPI::Block_SPI_Fast_Write(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, uint16_t col565, uint32_t repeat){
+ XY_Range(x0, y0, x1, y1);
+ CommandWrite( 0x2C ); //LCD RAM write
+ spiWriteBlock(col565, repeat);
 }
 
 // void ESP32_LCD_ILI9341_SPI::Block_SPI_Fast_Write(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, uint8_t red, uint8_t green, uint8_t blue, uint32_t repeat){
@@ -740,6 +748,11 @@ void ESP32_LCD_ILI9341_SPI::Draw_Vertical_Line(int16_t x0, int16_t y0, int16_t y
   if(y1 < y0) SWAP(int16_t, y0, y1);
   uint16_t Width_y = y1 - y0 + 1;
   ESP32_LCD_ILI9341_SPI::Block_SPI_Fast_Write(x0, y0, x0, y1, red, green, blue, Width_y);
+}
+void ESP32_LCD_ILI9341_SPI::Draw_Vertical_Line(int16_t x0, int16_t y0, int16_t y1, uint16_t col565){
+  if(y1 < y0) SWAP(int16_t, y0, y1);
+  uint16_t Width_y = y1 - y0 + 1;
+  ESP32_LCD_ILI9341_SPI::Block_SPI_Fast_Write(x0, y0, x0, y1, col565, Width_y);
 }
 //***************************************
 void ESP32_LCD_ILI9341_SPI::Draw_Line(int16_t x0, int16_t y0, int16_t x1, int16_t y1, uint8_t red, uint8_t green, uint8_t blue){
@@ -843,6 +856,26 @@ void ESP32_LCD_ILI9341_SPI::Draw_Circle_Fill(uint16_t x0, uint16_t y0, uint16_t 
     y1 = round( (float)(y0 + (r * sin(radians(i)))) );
     if((dummy_x != x1) || (dummy_y != y1)){
       ESP32_LCD_ILI9341_SPI::Draw_Vertical_Line(x1, y0, y1, red, green, blue);
+      dummy_x = x1;
+      dummy_y = y1;
+    }
+  }
+}
+void ESP32_LCD_ILI9341_SPI::Draw_Circle_Fill(uint16_t x0, uint16_t y0, uint16_t r, uint16_t col565){
+  //red (0-31), green (0-63), blue (0-31)
+  uint16_t x1, y1;
+  float i;
+  float deg = 1.0;
+  //半径が大きくなると、角度の刻み方を細かくしないと、完全に塗りつぶせないので注意。
+  if( r > 50 ) deg = 0.5;
+  if( r > 110) deg = 0.25;
+
+  int16_t dummy_x = -1, dummy_y = -1;
+  for( i = 0; i < 360; i = i + deg ){
+    x1 = round( (float)(x0 + (r * cos(radians(i)))) );
+    y1 = round( (float)(y0 + (r * sin(radians(i)))) );
+    if((dummy_x != x1) || (dummy_y != y1)){
+      ESP32_LCD_ILI9341_SPI::Draw_Vertical_Line(x1, y0, y1, col565);
       dummy_x = x1;
       dummy_y = y1;
     }

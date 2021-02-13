@@ -55,7 +55,7 @@ private:
 
   uint32_t _freq;
 
-  const uint8_t _SPI_NUM = 0x2; //VSPI=0x3, HSPI=0x2, FSPI=0x1
+  uint8_t _SPI_NUM = 0x3; //VSPI=0x3, HSPI=0x2, FSPI=0x1
   uint16_t _Max_Width_x = 240;
   uint16_t _Max_Width_y = 320;
   #define _Max_Num 10
@@ -142,6 +142,10 @@ public:
   void Draw_Rectangle_Fill(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, uint8_t red, uint8_t green, uint8_t blue);
   void Draw_Circle_Line(uint16_t x0, uint16_t y0, uint16_t r, uint8_t red, uint8_t green, uint8_t blue);
   void Draw_Circle_Fill(uint16_t x0, uint16_t y0, uint16_t r, uint8_t red, uint8_t green, uint8_t blue);
+
+  void Draw_Circle_Fill(uint16_t x0, uint16_t y0, uint16_t r, uint16_t col565);
+  void Draw_Vertical_Line(int16_t x0, int16_t y0, int16_t y1, uint16_t col565);
+  void Block_SPI_Fast_Write(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, uint16_t col565, uint32_t repeat);
 
   void drawRGBBitmap(int16_t x, int16_t y, uint16_t *bitmap, int16_t w, int16_t h);
 
